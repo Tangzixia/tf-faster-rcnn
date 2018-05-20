@@ -2,9 +2,12 @@
 
 1）conv提取特征：
 
-2）构建rpn网络：
-①而是从一张图片上面得到的多个proposals中构建批进行训练rpn网络，其中从所有的proposals中选出iou>0.7的128个proposals作为正样本，
+2）构建rpn网络：（更多请参考https://zhuanlan.zhihu.com/p/32230004）
+①而是从一张图片上面得到的多个proposals中构建批进行训练rpn网络，
+其中有很多的proposals都无用，因此我们需要将其删掉，设置阈值0.7和0.3作为正负样本的临界值，这样就可以删除很多的proposals，
+其中从所有的proposals中选出iou>0.7的128个proposals作为正样本，
 iou<0.3的proposals中挑选出128个proposals作为负样本进行训练，获取到bounding box regerssion所需要的(dx,dy,dw,dh)，
+注意这儿会根据(dx,dy,dw,dh）四个参数进行修正anchors的坐标，然后设置0.5作为正负样本的阈值，计算IOU，重新设置正负样本，用于训练！！！
 注意dx，dy，dw，dh代表了什么和如何训练得到的，需要注意一下，
 求得了这些参数之后，我们用它们做什么呢？
 
