@@ -16,6 +16,20 @@ import cv2
 from model.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
 
+#注意given a roidb，构建一个minibatch，这说明了rpn中的mini_batch并不是类似于以往中的batch images，
+#而是从一张图片上面得到的多个proposals中构建批进行训练rpn网络，其中从所有的proposals中选出iou>0.7的128个proposals作为正样本，
+#iou<0.3的proposals中挑选出128个proposals作为负样本进行训练，获取到bounding box regerssion所需要的(dx,dy,dw,dh)，
+#注意dx，dy，dw，dh代表了什么和如何训练得到的，需要注意一下，
+#求得了这些参数之后，我们用它们做什么呢？
+
+
+#然后我们结合这些参数和原来的rois以及feature maps，这下我们可以得到proposal feature maps（注意这些都是foreground），
+#这个过程在https://zhuanlan.zhihu.com/p/31426458有详细介绍，称为Proposal，
+
+#由于得到的proposal feature maps的大小不一，而fast rcnn网络中由于有全连接层的存在，因此需要固定的feature maps，
+#因此在将这些feature maps送入训练之前需要调整成统一大小，这儿采用的方式是ROI pooling操作，更详细的资料可以参考https://zhuanlan.zhihu.com/p/30343330
+
+#然后进行训练fast-RCNN网络
 def get_minibatch(roidb, num_classes):
   """Given a roidb, construct a minibatch sampled from it."""
   num_images = len(roidb)
