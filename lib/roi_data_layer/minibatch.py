@@ -32,6 +32,8 @@ from utils.blob import prep_im_for_blob, im_list_to_blob
 #然后进行训练fast-RCNN网络
 
 
+
+#for more information you can look this page:https://blog.csdn.net/sloanqin/article/details/51611747
 #传入get_minibatch中的roidb其实是[roidb[i]]，即第几张图片中的{}（含有5个key的dict)数据所组成的含有一个元素的list
 def get_minibatch(roidb, num_classes):
   """Given a roidb, construct a minibatch sampled from it."""
@@ -45,20 +47,24 @@ def get_minibatch(roidb, num_classes):
     format(num_images, cfg.TRAIN.BATCH_SIZE)
 
   # Get the input image blob, formatted for caffe
+  # the thing you should notice is im_bloc is just one pic data
   im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
 
   blobs = {'data': im_blob}
 
+  #look at this place,singe batch only,that is to say,mini-batch you just choose one picture to train rpn network
   assert len(im_scales) == 1, "Single batch only"
   assert len(roidb) == 1, "Single batch only"
   
   # gt boxes: (x1, y1, x2, y2, cls)
   if cfg.TRAIN.USE_ALL_GT:
     # Include all ground truth boxes
+    # choose all gt_classes is not bg,that is to say,you choose all foreground flags to train the rpn net!
     gt_inds = np.where(roidb[0]['gt_classes'] != 0)[0]
   else:
     # For the COCO ground truth boxes, exclude the ones that are ''iscrowd'' 
     gt_inds = np.where(roidb[0]['gt_classes'] != 0 & np.all(roidb[0]['gt_overlaps'].toarray() > -1.0, axis=1))[0]
+  #here you get all gt_boxes which shape is (len(gt_inds),5),so we can train
   gt_boxes = np.empty((len(gt_inds), 5), dtype=np.float32)
   gt_boxes[:, 0:4] = roidb[0]['boxes'][gt_inds, :] * im_scales[0]
   gt_boxes[:, 4] = roidb[0]['gt_classes'][gt_inds]
@@ -81,12 +87,15 @@ def _get_image_blob(roidb, scale_inds):
     if roidb[i]['flipped']:
       im = im[:, ::-1, :]
     target_size = cfg.TRAIN.SCALES[scale_inds[i]]
+    
+    #prep_im_for_blob,this is preprocess data for train,the thing you must notice is the im is just one pic
     im, im_scale = prep_im_for_blob(im, cfg.PIXEL_MEANS, target_size,
                     cfg.TRAIN.MAX_SIZE)
     im_scales.append(im_scale)
     processed_ims.append(im)
 
   # Create a blob to hold the input images
+  # yeah,you konw,the blob is just one,im_list_to_blob,because the precessed_ims is just one
   blob = im_list_to_blob(processed_ims)
 
   return blob, im_scales
