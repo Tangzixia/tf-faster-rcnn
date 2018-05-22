@@ -15,6 +15,8 @@ import numpy.random as npr
 from utils.cython_bbox import bbox_overlaps
 from model.bbox_transform import bbox_transform
 
+## in this place we judge anchors' label,that is to say,we get a mini_batch's anchor with label(256)
+## rpn_cls_score's shape is (1,57,38,18)
 def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors):
   """Same as the anchor target layer in original Fast/er RCNN """
   A = num_anchors
@@ -25,9 +27,11 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   _allowed_border = 0
 
   # map of shape (..., H, W)
+  ## get the shape of height and width
   height, width = rpn_cls_score.shape[1:3]
 
   # only keep anchors inside the image
+  ## inds_inside represents the anchors in the picture
   inds_inside = np.where(
     (all_anchors[:, 0] >= -_allowed_border) &
     (all_anchors[:, 1] >= -_allowed_border) &
@@ -39,6 +43,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   anchors = all_anchors[inds_inside, :]
 
   # label: 1 is positive, 0 is negative, -1 is dont care
+  ## now we judge the label is positive or negative by iou
+  #labels shape are (< 1*58*37*9)
   labels = np.empty((len(inds_inside),), dtype=np.float32)
   labels.fill(-1)
 
@@ -59,10 +65,11 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
     # first set the negatives
     labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
-  # fg label: for each gt, anchor with highest overlap
+  ## the two steria we choose for positive anchors 
+  #1) fg label: for each gt, anchor with highest overlap
   labels[gt_argmax_overlaps] = 1
 
-  # fg label: above threshold IOU
+  #2)fg label: above threshold IOU
   labels[max_overlaps >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
 
   if cfg.TRAIN.RPN_CLOBBER_POSITIVES:
@@ -70,21 +77,30 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
     labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
   # subsample positive labels if we have too many
+  
+  ## positive anchors' count,now it is 256*0.5=128
   num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
   fg_inds = np.where(labels == 1)[0]
+  ## if positive anchors is too many,we drop others rois! 
   if len(fg_inds) > num_fg:
     disable_inds = npr.choice(
       fg_inds, size=(len(fg_inds) - num_fg), replace=False)
     labels[disable_inds] = -1
+  ## but if positive anchors is less than 128,how do we do to satisfy the mini_batch train???
+  ## answer is below
 
   # subsample negative labels if we have too many
+  ## if positive anchors is 128,we choose other negative anchors;but if positive anchors are less than 128,we choose other negatives to fit this!!!
   num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
   bg_inds = np.where(labels == 0)[0]
+  ## if the negative anchors are too many,we drop others!!!
   if len(bg_inds) > num_bg:
     disable_inds = npr.choice(
       bg_inds, size=(len(bg_inds) - num_bg), replace=False)
     labels[disable_inds] = -1
 
+  
+  ## compute (tx,ty,tw,th)
   bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
   bbox_targets = _compute_targets(anchors, gt_boxes[argmax_overlaps, :])
 
