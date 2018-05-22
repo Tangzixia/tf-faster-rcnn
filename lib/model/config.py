@@ -74,6 +74,8 @@ __C.TRAIN.BATCH_SIZE = 128
 # Fraction of minibatch that is labeled foreground (i.e. class > 0)
 __C.TRAIN.FG_FRACTION = 0.25
 
+##在Fast-rcnn中判断roi是否为前景背景的threshold，注意已经到fast-rcnn这部分了
+
 # Overlap threshold for a ROI to be considered foreground (if >= FG_THRESH)
 __C.TRAIN.FG_THRESH = 0.5
 
@@ -122,6 +124,8 @@ __C.TRAIN.PROPOSAL_METHOD = 'gt'
 
 # Use RPN to detect objects
 __C.TRAIN.HAS_RPN = True
+
+##现在在rpn网络这部分，因此需要根据anchor和gt的iou是否大于threshold来判断正负样本！
 
 # IOU >= thresh: positive example
 __C.TRAIN.RPN_POSITIVE_OVERLAP = 0.7
