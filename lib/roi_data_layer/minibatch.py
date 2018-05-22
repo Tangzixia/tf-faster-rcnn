@@ -32,7 +32,7 @@ from utils.blob import prep_im_for_blob, im_list_to_blob
 #然后进行训练fast-RCNN网络
 
 
-
+#https://blog.csdn.net/zziahgf/article/details/78695868
 #for more information you can look this page:https://blog.csdn.net/sloanqin/article/details/51611747
 #传入get_minibatch中的roidb其实是[roidb[i]]，即第几张图片中的{}（含有5个key的dict)数据所组成的含有一个元素的list
 def get_minibatch(roidb, num_classes):
