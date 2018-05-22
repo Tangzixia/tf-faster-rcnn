@@ -69,15 +69,19 @@ class Network(object):
   def _add_train_summary(self, var):
     tf.summary.histogram('TRAIN/' + var.op.name, var)
 
+  ## reshape_layer: because the input shape is (1,58,37,18)
   def _reshape_layer(self, bottom, num_dim, name):
     input_shape = tf.shape(bottom)
     with tf.variable_scope(name) as scope:
       # change the channel to the caffe format
+      # shape is (1,18,58,37)
       to_caffe = tf.transpose(bottom, [0, 3, 1, 2])
       # then force it to have channel 2
+      ## output shape is (1,2,-,37),that is to say,the shape is (1,2,58*9,37)
       reshaped = tf.reshape(to_caffe,
                             tf.concat(axis=0, values=[[1, num_dim, -1], [input_shape[2]]]))
       # then swap the channel back
+      ## transpose,so you can get to_tf.shape===>(1,58*9,37,1)
       to_tf = tf.transpose(reshaped, [0, 2, 3, 1])
       return to_tf
 
@@ -234,6 +238,7 @@ class Network(object):
       self._anchors = anchors
       self._anchor_length = anchor_length
 
+  ## you can see the output's shape of net_conv is (,)
   def _build_network(self, is_training=True):
     # select initializers
     if cfg.TRAIN.TRUNCATED:
@@ -324,18 +329,23 @@ class Network(object):
 
     return loss
 
+  ## for the out layer of net_conv,we utilize this conv and get our expected output layer!
   def _region_proposal(self, net_conv, is_training, initializer):
     rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
                         scope="rpn_conv/3x3")
     self._act_summaries.append(rpn)
-    
+    ## rpn_cls_score's shape:(1,58,37,18)
     rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
                                 padding='VALID', activation_fn=None, scope='rpn_cls_score')
     # change it so that the score has 2 as its channel size
+    ## transpose,so you can get to_tf.shape===>(1,58*9,37,2)
     rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
+    ## 
     rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
+    ## rpn_cls_pred's shape is just(58*37*9,),that is to say (19314,)
     rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred")
+    
     rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob")
     rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
@@ -390,6 +400,7 @@ class Network(object):
 
   def create_architecture(self, mode, num_classes, tag=None,
                           anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
+    #notice the self._image's shape is (1,None,None,3)
     self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
     self._im_info = tf.placeholder(tf.float32, shape=[3])
     self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
