@@ -38,6 +38,25 @@ import numpy as np
 #       [ -79., -167.,   96.,  184.],
 #       [-167., -343.,  184.,  360.]])
 
+
+#after test,we found that anchors returned by <generate_anchors> func is a np.array with shape is (9,4),
+#which represent the feature map (0,0) position that output 9 anchors with 4 coordinates.
+#below is the result we got!
+'''
+(9, 4)
+[[ -84.  -40.   99.   55.]
+ [-176.  -88.  191.  103.]
+ [-360. -184.  375.  199.]
+ [ -56.  -56.   71.   71.]
+ [-120. -120.  135.  135.]
+ [-248. -248.  263.  263.]
+ [ -36.  -80.   51.   95.]
+ [ -80. -168.   95.  183.]
+ [-168. -344.  183.  359.]]
+
+'''
+
+#notice actually noticing this code is sufficient for you to understand the process of generating anchors!
 def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
                      scales=2 ** np.arange(3, 6)):
   """
