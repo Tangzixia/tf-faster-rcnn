@@ -341,8 +341,10 @@ class Network(object):
     # change it so that the score has 2 as its channel size
     ## transpose,so you can get to_tf.shape===>(1,58*9,37,2)
     rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
-    ## 
+    ## notice that for score_pred,because you want to pred positive or negative proposal
+    ## so you should add softmax operation after 1*1*18 conv operation to get its score of fg or bg pred
     rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
+    ## after softmax operation,you can choose its positive or negative pred judged by its score
     ## rpn_cls_pred's shape is just(58*37*9,),that is to say (19314,)
     rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred")
     
