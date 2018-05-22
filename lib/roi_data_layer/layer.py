@@ -40,20 +40,28 @@ class RoIDataLayer(object):
       np.random.seed(millis)
     
     if cfg.TRAIN.ASPECT_GROUPING:
+      #获取图片的宽高
       widths = np.array([r['width'] for r in self._roidb])
       heights = np.array([r['height'] for r in self._roidb])
       horz = (widths >= heights)
       vert = np.logical_not(horz)
       horz_inds = np.where(horz)[0]
       vert_inds = np.where(vert)[0]
+      #因为前面的horz和vert互为logical_not，因此进行np.where操作之后两者的和仍为5011
+      #因为hstack，所以inds的shape变为(10022，)
       inds = np.hstack((
           np.random.permutation(horz_inds),
           np.random.permutation(vert_inds)))
+      #转化inds的shape为(5011,2)
       inds = np.reshape(inds, (-1, 2))
+      #随机扰乱，shape为(5011,2)
       row_perm = np.random.permutation(np.arange(inds.shape[0]))
+      #reshape之后inds的shape为(10022,)
       inds = np.reshape(inds[row_perm, :], (-1,))
+      #self._perm的shape为(10022,)
       self._perm = inds
     else:
+      #self._perm的shape为（5011，）
       self._perm = np.random.permutation(np.arange(len(self._roidb)))
     # Restore the random state
     if self._random:
@@ -63,11 +71,12 @@ class RoIDataLayer(object):
 
   def _get_next_minibatch_inds(self):
     """Return the roidb indices for the next minibatch."""
-    
+    #判断当前的标签有没有超过边界
     if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
       self._shuffle_roidb_inds()
-
+    #获取db_inds，即下一次batch的标签，获取一张图片
     db_inds = self._perm[self._cur:self._cur + cfg.TRAIN.IMS_PER_BATCH]
+    #同时让当前标签前移
     self._cur += cfg.TRAIN.IMS_PER_BATCH
 
     return db_inds
@@ -80,6 +89,9 @@ class RoIDataLayer(object):
     """
     db_inds = self._get_next_minibatch_inds()
     minibatch_db = [self._roidb[i] for i in db_inds]
+    #注意minibatch_db中只有一个self._roidb[i],例如i为1000，则self._roidb[1000]
+    #而roidb[1000]中是一个有5个key的dict，（boxes,max_overlap,...）等等，所以训练rpn网络的minibatch都是从一张图片中进行选择
+    #下面我们来看具体操作！！！
     return get_minibatch(minibatch_db, self._num_classes)
       
   def forward(self):
