@@ -19,8 +19,11 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
   """
   if type(cfg_key) == bytes:
       cfg_key = cfg_key.decode('utf-8')
+  #12000 anchors pre nms algorithm are applied!
   pre_nms_topN = cfg[cfg_key].RPN_PRE_NMS_TOP_N
+  #2000 anchors are generated from one pic which are generated after nms
   post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N
+  #the threshold is set to 0.7 to delete abundant anchors!
   nms_thresh = cfg[cfg_key].RPN_NMS_THRESH
 
   # Get the scores and bounding boxes
@@ -28,6 +31,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
   rpn_bbox_pred = rpn_bbox_pred.reshape((-1, 4))
   scores = scores.reshape((-1, 1))
   proposals = bbox_transform_inv(anchors, rpn_bbox_pred)
+  #
   proposals = clip_boxes(proposals, im_info[:2])
 
   # Pick the top region proposals
