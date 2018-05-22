@@ -30,8 +30,12 @@ from utils.blob import prep_im_for_blob, im_list_to_blob
 #因此在将这些feature maps送入训练之前需要调整成统一大小，这儿采用的方式是ROI pooling操作，更详细的资料可以参考https://zhuanlan.zhihu.com/p/30343330
 
 #然后进行训练fast-RCNN网络
+
+
+#传入get_minibatch中的roidb其实是[roidb[i]]，即第几张图片中的{}（含有5个key的dict)数据所组成的含有一个元素的list
 def get_minibatch(roidb, num_classes):
   """Given a roidb, construct a minibatch sampled from it."""
+  #现在我们要从里面进行取样，num_image=1
   num_images = len(roidb)
   # Sample random scales to use for each image in this batch
   random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES),
