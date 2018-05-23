@@ -52,11 +52,13 @@ def get_minibatch(roidb, num_classes):
 
   blobs = {'data': im_blob}
 
-  #look at this place,singe batch only,that is to say,mini-batch you just choose one picture to train rpn network
+  ## look at this place,singe batch only,that is to say,mini-batch you just choose one picture to train whole network
+  ## looking at this code carefully,you can find whole net is training together!!!
   assert len(im_scales) == 1, "Single batch only"
   assert len(roidb) == 1, "Single batch only"
   
-  # gt boxes: (x1, y1, x2, y2, cls)
+  ## now the roidb is just the gt_label,gt_boxes in my mind,we provide truth data to train the net and analyze its effect!!!
+  ## gt boxes: (x1, y1, x2, y2, cls)
   if cfg.TRAIN.USE_ALL_GT:
     # Include all ground truth boxes
     # choose all gt_classes is not bg,that is to say,you choose all foreground flags to train the rpn net!
