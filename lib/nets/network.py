@@ -288,6 +288,16 @@ class Network(object):
   def _add_losses(self, sigma_rpn=3.0):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
       # RPN, class loss
+      ## calculate the losses of rpn network
+      ## do you remember in rpn network,we set N(cls) and N(reg),in a mini-batch N(cls)==256 and N(reg)~=2400,
+      ## and why???
+      
+      ## now,we analyze the code and find why this parameters are set in this way.
+      
+      ## rpn_cls_loss,you can find in rpn_select,we just find the labels which label is not -1,
+      ## that is to say,we just find <=128 fgs,and >=128 bgs,we just make sure the positive and negative anchors are 1:1 set,
+      ## so in a mini_batch we get the N(cls)=256,because even the anchors are 58*37*9,
+      ## but we just choose 256 anchors,and others are not injudged in rpn_cls_loss calculate,so the N(cls) is 256
       rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
       rpn_label = tf.reshape(self._anchor_targets['rpn_labels'], [-1])
       rpn_select = tf.where(tf.not_equal(rpn_label, -1))
@@ -297,6 +307,18 @@ class Network(object):
         tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
 
       # RPN, bbox loss
+      ## now we calculate the rpn bbox loss,we can find N(reg)~=2400,why???
+      ## we get about 58*37*9 anchors actually,but we analyze these anchors,
+      ## we can find so many and many anchors are over edges of pic,so we drop these anchors,
+      ## and more...
+      ## we can find so many anchors are overlaped baddly,so we use nms to drop these anchors,
+      ## after these operations,we can get about 2400 anchors,and we use these anchors to calculate bbox loss,
+      ## similiar to the before operation,we drop other anchors_pisitions and do not use these!
+      ## actually you can find tf.reduce_mean operation in _smooth_l1_loss
+      
+      ## but you should notice that in this code,rpn_bbox_pred seems to be all anchors(58*37*9),
+      ## this operation is also adoptable!
+      
       rpn_bbox_pred = self._predictions['rpn_bbox_pred']
       rpn_bbox_targets = self._anchor_targets['rpn_bbox_targets']
       rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights']
