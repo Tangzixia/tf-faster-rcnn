@@ -68,13 +68,19 @@ def proposal_layer_tf(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_strid
   scores = rpn_cls_prob[:, :, :, num_anchors:]
   scores = tf.reshape(scores, shape=(-1,))
   rpn_bbox_pred = tf.reshape(rpn_bbox_pred, shape=(-1, 4))
-
+  
+  ## to anchors we apply bbox_transform operation,and we make can calculate (tx*,ty*,tw*,th*),
+  ## and return the pred four coordinates(x1,y1,x2,y2)
   proposals = bbox_transform_inv_tf(anchors, rpn_bbox_pred)
   proposals = clip_boxes_tf(proposals, im_info[:2])
 
+  ## because the proposals are too much to choose,so we apply non-maximal suppression,and we can get about 2000 proposals in training
+  ## apply non-maximal suppression to the proposals
   # Non-maximal suppression
   indices = tf.image.non_max_suppression(proposals, scores, max_output_size=post_nms_topN, iou_threshold=nms_thresh)
 
+  ## now we get the proposals after nms operation,and we can get proposals scores and bbox_preds,
+  ## scores are predicted scores,not label
   boxes = tf.gather(proposals, indices)
   boxes = tf.to_float(boxes)
   scores = tf.gather(scores, indices)
