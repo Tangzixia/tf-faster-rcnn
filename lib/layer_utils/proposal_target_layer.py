@@ -15,6 +15,12 @@ from model.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 
 
+## rpn_rois,rpn_scores,because these parameters are all generated after clip,nms operations etc.
+## now we generate expected bbox and labels for fast-rcnn,
+## we can assign these proposals with expect labels and bbox,thus we train the fast-rcnn network!
+## now the values_ret[:3] is rois,roi_scores,labels,boxes_targets
+## rois are boxes actually,boxes_targets are expected anchors of fast-rcnn
+## roi_scores are anchors scores,and labels are expected labels of fast-rcnn
 def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   """
   Assign object detection proposals to ground-truth targets. Produces proposal
