@@ -46,11 +46,12 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
   # Sample rois with classification labels and bounding box regression
-  # targets
   labels, rois, roi_scores, bbox_targets, bbox_inside_weights = _sample_rois(
     all_rois, all_scores, gt_boxes, fg_rois_per_image,
     rois_per_image, _num_classes)
 
+  ## we can calculate its regression loss by rois and bbox_targets,
+  ## and we can calculate its softmax loss by rois_scores and labels.
   rois = rois.reshape(-1, 5)
   roi_scores = roi_scores.reshape(-1)
   labels = labels.reshape(-1, 1)
@@ -102,6 +103,15 @@ def _compute_targets(ex_rois, gt_rois, labels):
     (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
 
 
+## because the essential part of proposal_target_layer is _sample_rois,
+## so now let's talk about this function,
+## the input of this function is all_rois,all_scores ... etc.
+## you can find all_rois,all_scores are are handled before sample_rois,
+## you know,just clip anchors and nms operation,
+## and we get about 2400 anchors, now we train the fast-rcnn with mini_batch_data,
+## so we can select 128 anchor from fgs and bgs,
+## anchors with fg overlap>=0.5 we set fgs,and we set it's label ;overlap>0.1 and overlap<0.5 we set its to bgs,and set their labels to 0,
+## and just to calculate loss of anchors we choose,that is to say,just 128 anchors,we calculate its regression loss!
 def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
   """Generate a random sample of RoIs comprising foreground and background
   examples.
