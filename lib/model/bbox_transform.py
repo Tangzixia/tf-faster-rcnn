@@ -11,6 +11,9 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
+## 隐藏的彩蛋在这里
+## 可以发现计算rpn_bbox_loss计算的时候，是用dx,dy,dw和dh去和得到的数据进行smooth l1 loss求解，
+## 好玩吧！
 def bbox_transform(ex_rois, gt_rois):
   ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + 1.0
   ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + 1.0
