@@ -32,6 +32,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
   # only keep anchors inside the image
   ## inds_inside represents the anchors in the picture
+  ## 这样的话我们就可以删除掉很多在不在图片中的大量anchors，可以得到2400左右的anchors
   inds_inside = np.where(
     (all_anchors[:, 0] >= -_allowed_border) &
     (all_anchors[:, 1] >= -_allowed_border) &
@@ -50,9 +51,15 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
   # overlaps between the anchors and the gt boxes
   # overlaps (ex, gt)
+  ## after looking at cython.bbox的bbox_overlap之后，我们可以简单的发现，
+  ## 这里做的处理非常巧妙：
+  ## (58*37*9,4) shape的bbox_anchors,
+  ## (len(gt_boxes),4) shape的gt_boxes，
+  ## bbox_overlaps的返回值是(58*37*9,len(gt_boxes))，也就是说，对每一个anchors都计算了它距离其他gt_boxes的重叠度
   overlaps = bbox_overlaps(
     np.ascontiguousarray(anchors, dtype=np.float),
     np.ascontiguousarray(gt_boxes, dtype=np.float))
+  ## 通过argmax我们选择针对每个bbox_anchor，与它重叠度最高的作为它的预回归位置
   argmax_overlaps = overlaps.argmax(axis=1)
   max_overlaps = overlaps[np.arange(len(inds_inside)), argmax_overlaps]
   gt_argmax_overlaps = overlaps.argmax(axis=0)
@@ -125,6 +132,10 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   bbox_outside_weights[labels == 0, :] = negative_weights
 
   # map up to original set of anchors
+  ## 为了将shape恢复为（58*37*9,）和（58*37*9,4）,
+  ## 我们采用了_unmap操作，用于进行cls_loss和bbox_loss
+  ## 注意labels填充的是-1,
+  ## 而bbox_targets填充的是0，代表如果不在图片中的话，anchor不用进行回归，只对在图片中的anchors进行回归！！！
   labels = _unmap(labels, total_anchors, inds_inside, fill=-1)
   bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, fill=0)
   bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, fill=0)
