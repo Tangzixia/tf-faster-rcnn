@@ -1,4 +1,11 @@
 # faster-rcnn的过程解析：
+## 1、bouding box regression执行多少次？
+两次，一次是在rpn网络之后，在_proposal_layer中进行了坐标回归，第二次是在最后RCNN网络中进行回归；
+## 2、nms执行几次？
+两次、一次是在rpn网络之后，在_proposal_layer中进行了NMS操作，第二次是在最后的RCNN网络之后进行；
+## 3、rpn阶段的正负样本和最后的分类网络的正负样本如何生成？
+_anchor_target_layer:滤除所有的界外anchor，同时IOU大于0.7的为正样本（前景样本），IOU小于0.3的为负样本（背景样本）；
+_proposal_target_layer:IOU大于0.5则将pred_box的类别归于对应的gt_box的类别。
 
 1）conv提取特征：
 
